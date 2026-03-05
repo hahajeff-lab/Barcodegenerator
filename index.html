@@ -3,115 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>專業版條碼產生器 (BWR 補償版)</title>
+    <title>專業條碼產生器 - 極簡補償版</title>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
-        body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        
-        /* PC 雙欄佈局 */
-        .container { 
-            background: white; padding: 30px; border-radius: 12px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
-            width: 95%; max-width: 900px;
-            display: flex; flex-direction: row; gap: 30px;
-        }
-
-        .config-panel { flex: 1; min-width: 300px; }
-        
-        .preview-area { 
-            flex: 1; border: 2px dashed #ddd; border-radius: 8px;
-            background: #fafafa; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; min-height: 350px;
-        }
-
-        h1 { font-size: 20px; color: #333; margin-top: 0; }
+        body { font-family: sans-serif; background: #f4f4f9; display: flex; justify-content: center; padding: 20px; }
+        .container { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; gap: 20px; max-width: 850px; width: 100%; }
+        .config-panel { flex: 1; }
+        .preview-area { flex: 1; border: 2px dashed #ccc; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fafafa; min-height: 300px; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; font-size: 14px; }
-        .hint-box {
-    background: #f9f9f9;
-    border-left: 3px solid #007bff;
-    padding: 8px 12px;
-    margin-top: 5px;
-    font-size: 12px;
-    color: #666;
-    line-height: 1.6;
-}
-.hint-box strong { color: #333; }
-
-        select, input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        
-        .btn-generate { background: #007bff; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        .btn-generate:hover { background: #0056b3; }
-        
-        .btn-download { background: #28a745; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; cursor: pointer; margin-top: 10px; display: none; }
-        
-        #barcode { max-width: 100%; shape-rendering: crispEdges; }
-        .error-msg { color: #d93025; font-size: 13px; margin-top: 5px; display: none; }
-
-        /* 提示框 Toast */
-        #toast { 
-            display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); color: white; padding: 10px 25px; border-radius: 50px; z-index: 1000;
-        }
-
-        /* 手機版自動切換為垂直 */
-        @media (max-width: 768px) {
-            .container { flex-direction: column; }
-            .preview-area { min-height: 200px; }
-        }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        .btn-gen { background: #007bff; color: white; }
+        .btn-dl { background: #28a745; color: white; display: none; }
+        .hint { font-size: 12px; color: #666; margin-top: 4px; line-height: 1.4; }
+        #barcode { shape-rendering: crispEdges; }
+        #toast { display: none; position: fixed; top: 20px; background: rgba(0,0,0,0.8); color: #fff; padding: 8px 20px; border-radius: 20px; }
+        @media (max-width: 600px) { .container { flex-direction: column; } }
     </style>
 </head>
 <body>
 
-<div id="toast">條碼已更新</div>
+<div id="toast">已更新</div>
 
 <div class="container">
     <div class="config-panel">
-        <h1>條碼設定</h1>
-        
+        <h2>條碼設定</h2>
         <div class="form-group">
-            <label>條碼格式</label>
+            <label>格式</label>
             <select id="format">
-                <option value="CODE128">CODE128 (最通用)</option>
-                <option value="EAN13">EAN-13 (商品碼 13位)</option>
-                <option value="CODE39">CODE39 (支援大寫字母)</option>
-                <option value="ITF">ITF (交插五取二)</option>
+                <option value="CODE128">CODE128</option>
+                <option value="EAN13">EAN-13</option>
+                <option value="CODE39">CODE39</option>
             </select>
         </div>
-
         <div class="form-group">
-            <label>條碼內容</label>
+            <label>內容</label>
             <input type="text" id="content" value="12345678">
-            <div id="errorMsg">內容不符合格式規範</div>
         </div>
-
         <div class="form-group">
-            <label>細線基本寬度 (Width)</label>
-            <input type="number" id="width" min="0.1" max="5" step="0.1" value="1.0">
+            <label>基本寬度 (Width)</label>
+            <input type="number" id="width" step="0.1" value="1.0">
         </div>
-    <div class="hint-box">
-        <strong>建議值：</strong><br>
-        • 一般零售標籤：1.0 ~ 1.2<br>
-        • 小型電子產品：0.6 ~ 0.8 (需高解析噴墨)
-    </div>
-      <div class="form-group">
-    <label>黑線縮減量 (BWR)</label>
-    <input type="number" id="bwr" min="0" max="1" step="0.01" value="0.1">
-    <div class="hint-box">
-        <strong>印刷補償參考：</strong><br>
-        • <strong>0.00：</strong> 無補償 (僅用於螢幕顯示)<br>
-        • <strong>0.05 - 0.10：</strong> 雷射/熱感應印刷<br>
-        • <strong>0.15 - 0.25：</strong> 瓦楞紙箱/柔版印刷 (擴墨較大時)
-    </div>
-</div>
-
-
-        <button class="btn-generate" onclick="generate()">生成條碼</button>
-        <button id="downloadBtn" class="btn-download" onclick="downloadSVG()">下載 SVG 向量檔</button>
+        <div class="form-group">
+            <label>黑線縮減量 (BWR)</label>
+            <input type="number" id="bwr" step="0.01" value="0.1">
+            <div class="hint">建議：0.05-0.2。數值越大，黑線越細。</div>
+        </div>
+        <button class="btn-gen" onclick="generate()">生成條碼</button>
+        <button id="dlBtn" class="btn-dl" onclick="downloadSVG()">下載 SVG</button>
     </div>
 
     <div class="preview-area">
-        <span style="color: #999; margin-bottom: 10px; font-size: 12px;">PREVIEW</span>
         <svg id="barcode"></svg>
     </div>
 </div>
@@ -120,74 +63,54 @@
     function generate() {
         const format = document.getElementById('format').value;
         const content = document.getElementById('content').value;
-        const width = document.getElementById('width').value;
+        const width = parseFloat(document.getElementById('width').value);
         const bwr = document.getElementById('bwr').value;
-        const errorMsg = document.getElementById('errorMsg');
-        const downloadBtn = document.getElementById('downloadBtn');
 
         try {
             JsBarcode("#barcode", content, {
                 format: format,
-                width: parseFloat(width),
+                width: width,
                 height: 100,
                 displayValue: true,
                 flat: true,
                 valid: function(valid) {
                     if (valid) {
-                        errorMsg.style.display = 'none';
-                        downloadBtn.style.display = 'block';
-                        applyBWR(bwr);
-                        showToast("條碼生成成功");
+                        // 1. 套用補償：直接對所有矩形加上白色描邊
+                        const rects = document.querySelectorAll("#barcode rect");
+                        rects.forEach(r => {
+                            r.setAttribute("stroke", "#ffffff");
+                            r.setAttribute("stroke-width", bwr);
+                        });
+                        
+                        document.getElementById('dlBtn').style.display = 'block';
+                        showToast();
                     } else {
-                        showError();
+                        alert("格式不符！");
                     }
                 }
             });
-        } catch (e) {
-            showError();
-        }
+        } catch (e) { alert("生成失敗"); }
     }
 
-    function applyBWR(val) {
-        const rects = document.querySelectorAll("#barcode rect");
-        rects.forEach(rect => {
-            // 只針對黑色條紋（非背景）進行描邊縮減
-            if (rect.getAttribute("fill") !== "#ffffff" && rect.getAttribute("fill") !== "none") {
-                rect.style.stroke = "#ffffff";
-                rect.style.strokeWidth = val + "px";
-                rect.style.paintOrder = "stroke";
-            }
-        });
-    }
-
-    function showError() {
-        document.getElementById('errorMsg').style.display = 'block';
-        document.getElementById('downloadBtn').style.display = 'none';
-        document.getElementById('barcode').innerHTML = "";
-    }
-
-    function showToast(msg) {
+    function showToast() {
         const t = document.getElementById('toast');
-        t.innerText = msg;
         t.style.display = 'block';
-        setTimeout(() => { t.style.display = 'none'; }, 1500);
+        setTimeout(() => t.style.display = 'none', 1000);
     }
 
     function downloadSVG() {
-        const svgData = document.getElementById("barcode").outerHTML;
-        const svgBlob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
-        const svgUrl = URL.createObjectURL(svgBlob);
-        const downloadLink = document.createElement("a");
-        downloadLink.href = svgUrl;
-        downloadLink.download = "barcode_export.svg";
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
+        // 直接取得包含最新屬性的 SVG 字串
+        const svg = document.getElementById("barcode");
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const blob = new Blob(['<?xml version="1.0" encoding="UTF-8"?>' + svgData], {type: "image/svg+xml"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "barcode_bwr.svg";
+        a.click();
     }
 
-    // 初始載入
     window.onload = generate;
 </script>
-
 </body>
 </html>
