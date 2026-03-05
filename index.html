@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>專業網頁條碼產生器 (SVG 向量版)</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; padding: 40px; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        h1 { font-size: 24px; color: #333; text-align: center; margin-bottom: 25px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .controls { display: flex; gap: 10px; margin-top: 20px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; transition: 0.3s; }
+        .btn-generate { background-color: #007bff; color: white; }
+        .btn-generate:hover { background-color: #0056b3; }
+        .btn-download { background-color: #28a745; color: white; display: none; }
+        .btn-download:hover { background-color: #218838; }
+        .preview-area { margin-top: 30px; text-align: center; border: 2px dashed #eee; padding: 20px; min-height: 150px; display: flex; align-items: center; justify-content: center; background: #fafafa; }
+        #barcode { max-width: 100%; height: auto; }
+        .error-msg { color: #dc3545; font-size: 13px; margin-top: 5px; display: none; }
+        #barcode rect {
+    /* 使用白色描邊來侵蝕黑色的寬度，讓黑線變瘦 */
+    stroke: #ffffff; 
+    stroke-width: 0.2px; /* 數值越大，黑線越細，間隔越開 */
+    paint-order: stroke;
+}
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>條碼產生器</h1>
+
+    <div class="form-group">
+        <label for="format">條碼類型</label>
+        <select id="format">
+            <option value="CODE128">CODE128 (通用型, 支援字母數字)</option>
+            <option value="EAN13">EAN-13 (國際商品碼, 需13位數字)</option>
+            <option value="CODE39">CODE39 (工業常用)</option>
+            <option value="ITF">ITF (交插五取二, 僅數字)</option>
+            <option value="UPC">UPC (美加零售碼, 需12位數字)</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="content">條碼內容</label>
+        <input type="text" id="content" placeholder="請輸入條碼數值" value="12345678">
+        <div id="errorMsg" class="error-msg">輸入內容不符合該格式規範</div>
+    </div>
+
+ <div class="form-group">
+    <label for="width">條碼細線寬度 (支援小數點)</label>
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <input type="range" id="width" min="0.2" max="2" step="0.1" value="1" oninput="document.getElementById('widthValue').innerText = this.value">
+        <span id="widthValue" style="min-width: 30px; font-weight: bold;">1</span>
+    </div>
+    <small style="color: #888;">提示：0.5 - 0.8 適合精細印刷；1.0 為標準。</small>
+</div>
+
+<div class="form-group">
+    <label for="bwr">黑線縮減量 (BWR / 印刷補償)</label>
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <input type="range" id="bwr" min="0" max="0.5" step="0.05" value="0" oninput="updateBWR(this.value)">
+        <span id="bwrValue" style="min-width: 30px; font-weight: bold;">0</span>
+    </div>
+    <small style="color: #888;">提示：數值越大，黑線越瘦、白縫越寬。專業包裝常用 0.1 - 0.2。</small>
+</div>
+
+
+    <div class="controls">
+        <button class="btn-generate" onclick="generate()">生成條碼</button>
+        <button id="downloadBtn" class="btn-download" onclick="downloadSVG()">下載 SVG 向量檔</button>
+    </div>
+
+    <div class="preview-area">
+        <svg id="barcode"></svg>
+    </div>
+</div>
+
+<script>
+    function generate() {
+        const format = document.getElementById('format').value;
+        const content = document.getElementById('content').value;
+        const width = document.getElementById('width').value;
+        const errorMsg = document.getElementById('errorMsg');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        // 3-1. 檢驗正確性 (利用 JsBarcode 的 valid 回呼)
+        try {
+            JsBarcode("#barcode", content, {
+                format: format,
+             width: parseFloat(width), // 支援小數點細線
+             height: 100,       
+//flat: true,         // 讓條碼底部平整，適合向量輸出
+                displayValue: true,
+                // 錯誤處理邏輯
+                valid: function(valid) {
+                    if (valid) {
+                        errorMsg.style.display = 'none';
+                        downloadBtn.style.display = 'block';
+                    } else {
+                        showError();
+                    }
+                }
+            });
+        } catch (e) {
+            showError();
+        }
+        // 在產生完條碼後，立即套用當前的 BWR 數值
+applyBWR(document.getElementById('bwr').value);
+
+    }
+    function updateBWR(val) {
+    document.getElementById('bwrValue').innerText = val;
+    applyBWR(val);
+}
+
+function applyBWR(val) {
+    const svg = document.getElementById("barcode");
+    // 抓取 SVG 內所有的黑色長條 (rect)
+    const rects = svg.querySelectorAll("rect");
+    rects.forEach(rect => {
+        // 只有條碼本體（非背景）才縮減
+        if (rect.getAttribute("fill") !== "#ffffff") {
+            rect.style.stroke = "#ffffff";
+            rect.style.strokeWidth = val + "px";
+            rect.style.paintOrder = "stroke";
+        }
+    });
+}
+
+
+    function showError() {
+        const errorMsg = document.getElementById('errorMsg');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const barcode = document.getElementById('barcode');
+        
+        errorMsg.style.display = 'block';
+        downloadBtn.style.display = 'none';
+        barcode.innerHTML = ""; // 清空失敗的預覽
+    }
+
+    // 5. 下載 SVG 檔案
+    function downloadSVG() {
+        const svgElement = document.getElementById("barcode");
+        const serializer = new XMLSerializer();
+        let source = serializer.serializeToString(svgElement);
+
+        // 確保 XML 命名空間正確
+        if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
+            source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        
+        // 加上 XML 宣告
+        source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+
+        const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `barcode_${new Date().getTime()}.svg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // 初始化生成一次
+    generate();
+</script>
+
+</body>
+</html>
